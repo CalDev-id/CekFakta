@@ -13,7 +13,7 @@ class PredictionViewModel: ObservableObject {
     @Published var result: PredictionResponse?
     @Published var errorMessage: String = ""
 
-    private let endpoint = "http://192.168.50.110:8000/predict_from_url/"
+    private let endpoint = "http://192.168.50.110:8000/predict_test/"
 
     func predict() {
         guard let url = URL(string: endpoint) else {

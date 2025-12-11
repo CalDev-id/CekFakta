@@ -19,6 +19,7 @@ struct PredictView: View {
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .padding(.top, 20)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             ForEach(options) { option in
                 NavigationLink(destination: option.destination) {

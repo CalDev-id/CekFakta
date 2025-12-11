@@ -18,11 +18,6 @@ struct PredictionResponse: Codable {
 }
 
 struct EvidenceScraped: Codable {
-    let url: String
-    let content: EvidenceContent
-}
-
-struct EvidenceContent: Codable {
     let judul: String?
     let tanggal: String?
     let sumber: String?

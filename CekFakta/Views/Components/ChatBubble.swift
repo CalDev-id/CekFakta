@@ -9,13 +9,13 @@ struct ChatBubble: View {
                 // Avatar bot
                 Image("logo")
                     .resizable()
-                    .frame(width: 38, height: 38)
-                    .cornerRadius(10)
+                    .frame(width: 35, height: 35)
+                    .cornerRadius(100)
 
                 // Bubble bot
                 Text(message.content)
                     .padding()
-                    .background(Color.black)
+                    .background(Color.secondary)
                     .foregroundColor(.white)
                     .cornerRadius(10)
                 
@@ -26,13 +26,14 @@ struct ChatBubble: View {
                 // Bubble user
                 Text(message.content)
                     .padding()
-                    .background(Color.blue)
+                    .background(Color.redPrimary.opacity(0.8))
                     .foregroundColor(.white)
                     .cornerRadius(10)
 
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 35))
-                    .foregroundColor(.white)
+                Image("cal")
+                    .resizable()
+                    .frame(width: 35, height: 35)
+                    .cornerRadius(100)
             }
         }
     }

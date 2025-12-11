@@ -74,7 +74,7 @@ struct ContentView: View {
                     Text("Chat")
                 }
 
-            DataView()
+            ProfileView()
                 .tag(4)
                 .tabItem {
                     Image(systemName: "person.fill")
