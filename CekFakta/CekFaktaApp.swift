@@ -22,6 +22,15 @@ struct CekFaktaApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
+    init() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground() // bikin solid, bukan blur
+        appearance.backgroundColor = UIColor.systemBackground // warna background
+
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
+
 
     var body: some Scene {
         WindowGroup {

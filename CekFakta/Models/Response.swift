@@ -7,18 +7,14 @@
 import Foundation
 
 struct PredictionResponse: Codable {
-    let input_user: InputUser?
+    let url: String
+    let title: String
+    let content: String
     let classification: Classification?
     let evidence_links: [String]?
     let evidence_scraped: [EvidenceScraped]?
     let explanation: String?
     let error: String?
-}
-
-struct InputUser: Codable {
-    let url: String
-    let title: String
-    let content: String
 }
 
 struct EvidenceScraped: Codable {
@@ -35,9 +31,7 @@ struct EvidenceContent: Codable {
     let featured_image: String?
 }
 
-
 struct Classification: Codable {
-    let label: String
-    let confidence: Double
-    let probs: [[Double]]
+    let final_label: String
+    let final_confidence: Double
 }

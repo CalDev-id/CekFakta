@@ -34,11 +34,11 @@ struct ChatView: View {
 
             Spacer()
 
-            Image("logo")
-                .resizable()
-                .frame(width: 42, height: 42)
+//            Image("logo")
+//                .resizable()
+//                .frame(width: 42, height: 42)
 
-            Text("logo")
+            Text("Cek Fakta Bot")
                 .font(.system(size: 15))
                 .fontWeight(.semibold)
                 .foregroundColor(.white)
@@ -51,7 +51,7 @@ struct ChatView: View {
                 .foregroundColor(.white)
         }
         .padding(.vertical, 10)
-        .background(Color.yellow)
+        .background(Color.redPrimary)
     }
 
     private var chatScrollView: some View {
@@ -84,7 +84,7 @@ struct ChatView: View {
         HStack {
             Image(systemName: "phone.fill")
                 .font(.title)
-                .foregroundColor(.yellow)
+                .foregroundColor(.redPrimary)
                 .padding(.trailing, 8)
 
             ZStack {
@@ -111,7 +111,7 @@ struct ChatView: View {
             } label: {
                 Image(systemName: "paperplane.fill")
                     .font(.title)
-                    .foregroundColor(.yellow)
+                    .foregroundColor(.redPrimary)
             }
             .padding(.leading, 6)
         }

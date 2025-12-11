@@ -1,269 +1,109 @@
 import SwiftUI
 
-struct PredictView: View {
-    @StateObject private var vm = PredictionViewModel()
-    @State private var expandEvidence: Bool = false
-
-    var body: some View {
-
-        // === ZSTACK PENTING AGAR LOADING FULLSCREEN ===
-        ZStack {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 20) {
-
-                    Text("Cek Fakta Berita")
-                        .font(.largeTitle).bold()
-
-                    Text("Masukkan URL berita untuk dianalisis")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-
-                    // Input Field
-                    TextField("https://contoh.com/berita", text: $vm.urlInput)
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(12)
-
-                    // Predict Button
-                    Button(action: {
-                        hideKeyboard()        // <<< auto close keyboard
-                        vm.predict()
-                    }) {
-                        HStack {
-                            Image(systemName: "sparkles")
-                            Text("Analisis").bold()
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(vm.urlInput.isEmpty ? Color.gray : Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(14)
-                    }
-                    .disabled(vm.urlInput.isEmpty)
-
-                    // Error UI
-                    if !vm.errorMessage.isEmpty {
-                        Text("⚠️ \(vm.errorMessage)")
-                            .foregroundColor(.red)
-                            .padding(.top)
-                    }
-
-                    // RESULT VIEW
-                    if let result = vm.result {
-
-                        VStack(alignment: .leading, spacing: 18) {
-
-                            // 1. URL
-                            if let input = result.input_user {
-                                SectionCard(title: "URL") {
-                                    Text(input.url)
-                                        .font(.callout)
-                                        .foregroundColor(.blue)
-                                        .lineLimit(2)
-                                }
-                            }
-
-                            // 2. TITLE
-                            if let input = result.input_user {
-                                SectionCard(title: "Judul Berita") {
-                                    Text(input.title)
-                                        .font(.headline)
-                                }
-                            }
-
-                            // 3. KLASIFIKASI
-                            if let classif = result.classification {
-                                SectionCard(title: "Klasifikasi") {
-
-                                    LabelCapsule(
-                                        text: classif.label.uppercased(),
-                                        color: classif.label.lowercased() == "hoaks" ? .red : .green
-                                    )
-
-                                    Text("Confidence: **\(String(format: "%.2f", classif.confidence))%**")
-                                        .font(.callout)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-
-                            // 4. PENJELASAN
-                            if let explanation = result.explanation {
-                                SectionCard(title: "Penjelasan Singkat") {
-                                    Text(explanation)
-                                        .font(.body)
-                                }
-                            }
-
-                            // 5. EVIDENCE
-                            if let evidences = result.evidence_scraped, !evidences.isEmpty {
-                                SectionCard(title: "Bukti Tambahan (Evidence)") {
-
-                                    let firstEvidence = evidences[0]
-                                    let content = firstEvidence.content
-                                    let fullContent = content.content ?? "Tidak ada konten"
-                                    let preview = String(fullContent.prefix(200))
-
-                                    VStack(alignment: .leading, spacing: 12) {
-
-                                        if let imageUrl = content.featured_image,
-                                           let url = URL(string: imageUrl) {
-
-                                            AsyncImage(url: url) { phase in
-                                                switch phase {
-                                                case .empty:
-                                                    ProgressView()
-                                                case .success(let image):
-                                                    image
-                                                        .resizable()
-                                                        .scaledToFill()
-                                                        .frame(maxWidth: .infinity)
-                                                        .frame(height: 180)
-                                                        .clipped()
-                                                        .cornerRadius(12)
-                                                case .failure(_):
-                                                    Color.gray.opacity(0.2)
-                                                        .frame(height: 180)
-                                                        .overlay(Text("Gagal memuat gambar"))
-                                                @unknown default:
-                                                    EmptyView()
-                                                }
-                                            }
-                                        }
-
-                                        if let judul = content.judul, !judul.isEmpty {
-                                            Text(judul)
-                                                .font(.subheadline)
-                                                .bold()
-                                        }
-
-                                        HStack(spacing: 10) {
-                                            if let sumber = content.sumber {
-                                                Text(sumber)
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            if let tanggal = content.tanggal {
-                                                Text(tanggal)
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                        }
-
-                                        if expandEvidence {
-                                            Text(fullContent)
-                                                .font(.body)
-                                                .foregroundColor(.primary)
-                                        } else {
-                                            Text(preview + (fullContent.count > 200 ? "…" : ""))
-                                                .font(.body)
-                                                .foregroundColor(.secondary)
-                                        }
-
-                                        Button(action: {
-                                            withAnimation {
-                                                expandEvidence.toggle()
-                                            }
-                                        }) {
-                                            Text(expandEvidence ? "Lihat lebih sedikit ▲" : "Lihat selengkapnya ▼")
-                                                .font(.callout)
-                                                .foregroundColor(.blue)
-                                        }
-                                        .padding(.top, 6)
-                                    }
-                                }
-                            }
-                            // 6. SUMBER PENDUKUNG
-                            if let links = result.evidence_links {
-                                SectionCard(title: "Sumber Pendukung") {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        ForEach(links, id: \.self) { link in
-                                            Link(destination: URL(string: link)!) {
-                                                HStack {
-                                                    Image(systemName: "link")
-                                                    Text(link)
-                                                        .foregroundColor(.blue)
-                                                        .lineLimit(1)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.top, 10)
-                    }
-
-                    Spacer()
-                }
-                .padding()
-            }
-
-            // === FULLSCREEN LOADING ===
-            if vm.isLoading {
-                ZStack {
-                    Color.black.opacity(0.35)
-                        .ignoresSafeArea()
-
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(2)
-                        Text("Sedang menganalisis...")
-                            .foregroundColor(.white)
-                            .font(.headline)
-                    }
-                    .padding(40)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(20)
-                }
-                .transition(.opacity)
-            }
-        }
-    }
-}
-
-
-// MARK: - Auto Close Keyboard
-extension View {
-    func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
-                                        to: nil, from: nil, for: nil)
-    }
-}
-
-
-struct SectionCard<Content: View>: View {
+struct PredictOption: Identifiable {
+    let id = UUID()
     let title: String
-    let content: () -> Content
+    let destination: AnyView
+}
 
-    init(title: String, @ViewBuilder content: @escaping () -> Content) {
-        self.title = title
-        self.content = content
-    }
-
+struct PredictView: View {
+    let options: [PredictOption] = [
+        PredictOption(title: "News",  destination: AnyView(PredictWithNews())),
+        PredictOption(title: "Claim", destination: AnyView(PredictWithClaim())),
+        PredictOption(title: "Link",  destination: AnyView(PredictWithLink()))
+    ]
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-            content()
+        VStack(spacing: 20) {
+            Text("Choose Prediction Method")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .padding(.top, 20)
+
+            ForEach(options) { option in
+                NavigationLink(destination: option.destination) {
+                    PredictCard(predict: option.title)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .background(Color(.systemGroupedBackground))
+    }
+}
+
+#Preview {
+    PredictView()
+}
+
+struct PredictCard: View {
+    let predict: String
+    
+    var body: some View {
+        HStack(spacing: 15) {
+            
+            // MARK: Icon sesuai nama titel
+            Image(systemName: iconName(for: predict))
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(.white)
+                .padding(14)
+                .background(
+                    LinearGradient(colors: [Color.redPrimary, Color.redPrimary.opacity(0.8)],
+                                   startPoint: .topLeading,
+                                   endPoint: .bottomTrailing)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(predict)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                Text(subtitle(for: predict))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.redPrimary)
         }
         .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(radius: 2, y: 1)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white)
+                .shadow(
+                    color: Color.black.opacity(0.08),
+                    radius: 8,
+                    x: 0, y: 4
+                )
+        )
     }
 }
 
-struct LabelCapsule: View {
-    let text: String
-    let color: Color
-
-    var body: some View {
-        Text(text)
-            .bold()
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(color.opacity(0.15))
-            .foregroundColor(color)
-            .clipShape(Capsule())
+extension PredictCard {
+    // MARK: Subtitle otomatis
+    func subtitle(for title: String) -> String {
+        switch title {
+        case "News": return "Paste news article to analyze"
+        case "Claim": return "Check the truth of a specific claim"
+        case "Link": return "Verify content from a website link"
+        default: return "Prediction method"
+        }
+    }
+    
+    // MARK: Icon otomatis
+    func iconName(for title: String) -> String {
+        switch title {
+        case "News": return "newspaper.fill"
+        case "Claim": return "quote.bubble.fill"
+        case "Link": return "link.circle.fill"
+        default: return "questionmark.circle"
+        }
     }
 }
