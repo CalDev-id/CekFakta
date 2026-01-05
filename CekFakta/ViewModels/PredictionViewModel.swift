@@ -10,7 +10,7 @@ import Foundation
 class PredictionViewModel: ObservableObject {
     @Published var urlInput: String = ""
     @Published var isLoading: Bool = false
-    @Published var result: PredictionResponse?
+    @Published var result: News?
     @Published var errorMessage: String = ""
 
     private let endpoint = "http://192.168.50.110:8000/predict_test/"
@@ -55,7 +55,7 @@ class PredictionViewModel: ObservableObject {
                 }
 
                 do {
-                    let decoded = try JSONDecoder().decode(PredictionResponse.self, from: data)
+                    let decoded = try JSONDecoder().decode(News.self, from: data)
                     self.result = decoded
                 } catch {
                     self.errorMessage = "Failed to decode response: \(error.localizedDescription)"

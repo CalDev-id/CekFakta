@@ -68,21 +68,21 @@ struct LoadingView: View {
                     }
                 }
                 .padding(.leading, 20)
-                .padding(.bottom, 20)
+                .padding(.bottom, 50)
                 .padding(.top, 80)
             }
-            Button(action: {}, label: {
-                Text("Cancel")
-                    .fontWeight(.medium)
-            })
-            .foregroundStyle(.black)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical)
-            .background(
-                RoundedRectangle(cornerRadius: 2)
-                    .stroke(Color.redPrimary, lineWidth: 2)
-            )
-            .padding(.horizontal, 20)
+//            Button(action: {}, label: {
+//                Text("Cancel")
+//                    .fontWeight(.medium)
+//            })
+//            .foregroundStyle(.black)
+//            .frame(maxWidth: .infinity)
+//            .padding(.vertical)
+//            .background(
+//                RoundedRectangle(cornerRadius: 2)
+//                    .stroke(Color.redPrimary, lineWidth: 2)
+//            )
+//            .padding(.horizontal, 20)
         }
         .background(.white)
     }

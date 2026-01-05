@@ -6,25 +6,14 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-
-            // HEADER
             headerView
-
-            // CHAT LIST
             chatScrollView
-
         }
-        // Input bar dipindah menjadi safeAreaInset (iOS 15+ recommended)
         .safeAreaInset(edge: .bottom) {
             inputBar
                 .background(Color.white)
         }
     }
-    
-    // ---------------------------------------
-    // MARK: - SUBVIEWS
-    // ---------------------------------------
-
     private var headerView: some View {
         HStack {
             Image(systemName: "chevron.left")
@@ -33,11 +22,6 @@ struct ChatView: View {
                 .foregroundColor(.white)
 
             Spacer()
-
-//            Image("logo")
-//                .resizable()
-//                .frame(width: 42, height: 42)
-
             Text("Cek Fakta Bot")
                 .font(.system(size: 15))
                 .fontWeight(.semibold)
@@ -120,9 +104,6 @@ struct ChatView: View {
         .padding(.bottom, 10)
     }
 
-    // ---------------------------------------
-    // MARK: - Scroll to Bottom
-    // ---------------------------------------
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         if let lastId = viewModel.chatHistory.last?.id {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {

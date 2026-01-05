@@ -8,12 +8,13 @@ import SwiftUI
 
 struct HomeScreen: View {
     @StateObject private var vm = NewsViewModel()
+    @EnvironmentObject var auth: AuthManager
     let tab = ["All News", "Valid", "Hoaks"]
         @State var selectedIndex = 0
     var body: some View {
         ScrollView(.vertical, showsIndicators: false){
                 if vm.isLoading {
-                    ProgressView("Loading...")
+//                    ProgressView("Loading...")
                 } else if let error = vm.errorMessage {
                     Text(error)
                         .foregroundColor(.red)
@@ -24,10 +25,24 @@ struct HomeScreen: View {
                                     .resizable()
                                     .frame(width: 40, height: 40)
                                 Spacer()
-                                Image("cal")
-                                    .resizable()
+                                if let avatar = auth.avatarURL,
+                                   let url = URL(string: avatar) {
+                                    AsyncImage(url: url) { image in
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                    } placeholder: {
+                                        ProgressView()
+                                    }
                                     .frame(width: 40, height: 40)
                                     .clipShape(Circle())
+                                } else {
+                                    Image(systemName: "person.circle.fill")
+                                        .resizable()
+                                        .frame(width: 40, height: 40)
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 40, height: 40)
+                                }
                             }
                             .padding(.horizontal, 20)
                             VStack(alignment: .leading, spacing: 0) {
@@ -68,7 +83,7 @@ struct HomeScreen: View {
                             Divider()
                                 .padding(.top, -9)
                             if let top = filteredNews.first {
-                                NavigationLink(destination: DetailNews(newsId: top.id)) {
+                                NavigationLink(destination: DetailNews(newsId: top.id!)) {
                                     TopNewsCard(news: top)
                                 }
                                 .buttonStyle(.plain)
@@ -77,9 +92,10 @@ struct HomeScreen: View {
                                 .offset(y: 70)
                                 .padding(.horizontal)
                             ForEach(Array(filteredNews.dropFirst().reversed())) { item in
-                                NavigationLink(destination: DetailNews(newsId: item.id)) {
+                                NavigationLink(destination: DetailNews(newsId: item.id!)) {
                                     NewsRow(news: item)
                                         .padding(.horizontal, 20)
+                                        .offset(y: 70)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -98,10 +114,10 @@ extension HomeScreen {
         switch selectedIndex {
         case 1:
             // Valid news
-            return vm.newsList.filter { $0.classification?.lowercased() == "valid" }
+            return vm.newsList.filter { $0.classification?.final_label?.lowercased() == "valid" }
         case 2:
             // Hoaks news
-            return vm.newsList.filter { $0.classification?.lowercased() == "hoaks" }
+            return vm.newsList.filter { $0.classification?.final_label?.lowercased() == "hoaks" }
         default:
             // All news
             return vm.newsList

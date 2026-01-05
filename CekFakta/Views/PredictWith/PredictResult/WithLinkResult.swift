@@ -2,10 +2,11 @@ import SwiftUI
 
 struct WithLinkResult: View {
 
-    let prediction: PredictionResponse
+    let prediction: News
     @Environment(\.dismiss) var dismiss
     @State private var expandEvidence: Bool = false
-    
+    @StateObject private var shareVM = ShareNewsViewModel()
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
@@ -33,13 +34,13 @@ struct WithLinkResult: View {
                         .frame(width: UIScreen.main.bounds.width)
                         .clipped()
                         
-                        Text(prediction.classification?.final_label.capitalized ?? "-")
+                        Text(prediction.classification?.final_label?.capitalized ?? "-")
                             .font(.system(size: 18, weight: .medium))
                             .foregroundColor(.white)
                             .padding(.vertical, 5)
                             .padding(.horizontal, 15)
                             .background(
-                                (prediction.classification?.final_label == "valid")
+                                (prediction.classification?.final_label?.lowercased() == "valid")
                                 ? Color.blue
                                 : Color.red
                             )
@@ -51,7 +52,7 @@ struct WithLinkResult: View {
                 VStack(alignment: .leading) {
 
                     // TITLE
-                    Text(prediction.title)
+                    Text(prediction.title ?? "Tidak ada judul")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .padding(.vertical, 0)
@@ -60,7 +61,7 @@ struct WithLinkResult: View {
 
                     // CONTENT
                     ExpandableText(
-                        text: prediction.content,
+                        text: prediction.content ?? "Tidak ada konten",
                         lineLimit: 15
                     )
                     .padding(.bottom, 10)
@@ -141,7 +142,7 @@ struct WithLinkResult: View {
                     }
 
                     // Supporting links
-                    if let links = prediction.evidence_links {
+                    if let links = prediction.evidence_links, !links.isEmpty {
                         SectionCard(title: "Sumber Pendukung") {
                             VStack(alignment: .leading, spacing: 12) {
                                 ForEach(links, id: \.self) { link in
@@ -159,6 +160,28 @@ struct WithLinkResult: View {
                             }
                         }
                     }
+                    Button {
+                        Task {
+                            await shareVM.shareNews(prediction)
+                        }
+                    } label: {
+                        HStack {
+                            if shareVM.isLoading {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("Share ke Database")
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                    .padding(.top, 20)
+
+
                 }
                 .padding(.horizontal)
             }

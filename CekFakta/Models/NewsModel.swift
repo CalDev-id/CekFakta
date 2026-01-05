@@ -8,28 +8,36 @@
 import Foundation
 
 struct News: Identifiable, Codable {
-    let id: String
+    let id: String?
     let url: String?
     let title: String?
     let content: String?
-    let classification: String?
-    let evidence_link: [String]?
-    let evidence_scraped: [EvidenceScraped2]?
+    let classification: Classification?
+    let evidence_links: [String]?
+    let evidence_scraped: [EvidenceScraped]?
     let explanation: String?
     let inserted_at: String? 
     let updated_at: String?
+    let author: Author?  
+    let error: String?
 }
 
-struct EvidenceScraped2: Codable {
-    let url: String?
-    let content: EvidenceContent2?
-}
-
-struct EvidenceContent2: Codable {
+struct EvidenceScraped: Codable {
     let judul: String?
     let tanggal: String?
     let sumber: String?
     let link: String?
     let content: String?
     let featured_image: String?
+}
+
+struct Classification: Codable {
+    let final_label: String?
+    let final_confidence: Double?
+}
+
+struct Author: Codable {
+    let id: String?
+    let name: String?
+    let avatar_url: String?
 }

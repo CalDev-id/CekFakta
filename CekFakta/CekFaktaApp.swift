@@ -24,19 +24,19 @@ struct CekFaktaApp: App {
     }()
     init() {
         let appearance = UITabBarAppearance()
-        appearance.configureWithOpaqueBackground() // bikin solid, bukan blur
-        appearance.backgroundColor = UIColor.systemBackground // warna background
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor.systemBackground
 
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
     }
-
-
+    @StateObject private var auth = AuthManager()
     var body: some Scene {
         WindowGroup {
             NavigationStack {
-                ContentView()
+                RootView()
             }
+            .environmentObject(auth)
         }
         .modelContainer(sharedModelContainer)
     }

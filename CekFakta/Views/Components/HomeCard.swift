@@ -12,7 +12,7 @@ struct TopNewsCard: View {
 
     var body: some View {
         ZStack {
-            AsyncImageView(urlString: news.evidence_scraped?.first?.content?.featured_image)
+            AsyncImageView(urlString: news.evidence_scraped?.first?.featured_image)
                 .frame(width: UIScreen.main.bounds.width - 20)
                 .frame(height: 260)
                 .clipped()
@@ -27,7 +27,7 @@ struct TopNewsCard: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text((news.classification ?? "-").capitalizingFirstLetter)
+                        Text((news.classification?.final_label ?? "-").capitalizingFirstLetter)
                             .font(.caption.bold())
                             .foregroundColor(.black)
                             .padding(.horizontal, 10)
@@ -92,8 +92,6 @@ struct AsyncImageView: View {
     }
 }
 
-
-
 struct NewsRow: View {
     let news: News
 
@@ -101,9 +99,9 @@ struct NewsRow: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack{
-                    Text((news.classification ?? "-").capitalizingFirstLetter)
+                    Text((news.classification?.final_label ?? "-").capitalizingFirstLetter)
                         .font(.subheadline)
-                        .foregroundColor(news.classification == "valid" ? .blue : .red)
+                        .foregroundColor(news.classification?.final_label == "valid" ? .blue : .red)
                     Text("•")
                         .foregroundColor(.gray)
                     if let date = news.inserted_at {
@@ -122,7 +120,7 @@ struct NewsRow: View {
 
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            if let img = news.evidence_scraped?.first?.content?.featured_image,
+            if let img = news.evidence_scraped?.first?.featured_image,
                let url = URL(string: img) {
                 AsyncImage(url: url) { phase in
                     switch phase {
@@ -152,7 +150,7 @@ struct NewsRow: View {
             }
         }
         .padding(.vertical, 6)
-        .offset(y: 70)
+        
     }
 }
 

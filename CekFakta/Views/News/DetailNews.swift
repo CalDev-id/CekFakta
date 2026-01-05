@@ -41,7 +41,7 @@ struct DetailNews: View {
                     }
                     .padding(.horizontal)
                     
-                    if let img = news.evidence_scraped?.first?.content?.featured_image,
+                    if let img = news.evidence_scraped?.first?.featured_image,
                        let url = URL(string: img) {
                         ZStack(alignment: .bottomLeading){
                             AsyncImage(url: url) { image in
@@ -54,13 +54,18 @@ struct DetailNews: View {
                             .frame(width: UIScreen.main.bounds.width)
                             .clipped()
                             
-                            Text((news.classification ?? "-").capitalizingFirstLetter)
+                            Text(news.classification?.final_label?.capitalized ?? "-")
                                 .font(.system(size: 18, weight: .medium))
                                 .foregroundColor(.white)
                                 .padding(.vertical, 5)
                                 .padding(.horizontal, 15)
-                                .background(news.classification == "valid" ? .blue : Color.redPrimary)
+                                .background(
+                                    news.classification?.final_label?.lowercased() == "valid"
+                                    ? Color.blue
+                                    : Color.redPrimary
+                                )
                                 .cornerRadius(5)
+
 
                         }
                         .padding(.bottom, 20)
@@ -85,20 +90,45 @@ struct DetailNews: View {
                             .font(.title2)
                             .fontWeight(.semibold)
                             .padding(.vertical, 10)
-                        HStack {
-                            Image("cal")
-                                .resizable()
-                                .frame(width: 40, height: 40)
-                                .clipShape(Circle())
-                            VStack(alignment: .leading){
-                                Text("Heical Chandra")
+                        HStack(spacing: 12) {
+                            AsyncImage(url: URL(string: news.author?.avatar_url ?? "")) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(width: 40, height: 40)
+
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 40, height: 40)
+                                        .clipShape(Circle())
+
+                                case .failure:
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 40, height: 40)
+                                        .foregroundColor(.gray)
+
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(news.author?.name ?? "Unknown Author")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+
                                 if let date = news.inserted_at {
-                                    Text("\(formatISODate(date))")
-                                        .font(.subheadline)
+                                    Text(formatISODate(date))
+                                        .font(.caption)
                                         .foregroundColor(.gray)
                                 }
                             }
                         }
+
                         .padding(.bottom, 10)
                         
                         Divider()
@@ -112,37 +142,41 @@ struct DetailNews: View {
                         Divider()
                         //evidence
                         if let evidences = news.evidence_scraped, !evidences.isEmpty {
+
                             SectionCard(title: "Bukti Tambahan (Evidence)") {
 
-                                let firstEvidence = evidences[0]
-                                let content = firstEvidence.content
-                                let fullContent = content?.content ?? "Tidak ada konten"
+                                let evidence = evidences[0]
+                                let fullContent = evidence.content ?? "Tidak ada konten"
                                 let preview = String(fullContent.prefix(200))
 
                                 VStack(alignment: .leading, spacing: 12) {
 
-                                    if let imageUrl = content?.featured_image,
+                                    // Image
+                                    if let imageUrl = evidence.featured_image,
                                        let url = URL(string: imageUrl) {
 
                                         AsyncImage(url: url) { phase in
                                             switch phase {
                                             case .empty:
                                                 ProgressView()
-                                                    .frame(width: 330, height: 180) // fixed size
+                                                    .frame(width: 330, height: 180)
                                                     .background(Color.gray.opacity(0.1))
                                                     .cornerRadius(12)
+
                                             case .success(let image):
                                                 image
                                                     .resizable()
                                                     .scaledToFill()
-                                                    .frame(width: 330, height: 180) // fixed size
+                                                    .frame(width: 330, height: 180)
                                                     .clipped()
                                                     .cornerRadius(12)
-                                            case .failure(_):
+
+                                            case .failure:
                                                 Color.gray.opacity(0.2)
-                                                    .frame(width: 330, height: 180) // fixed size
+                                                    .frame(width: 330, height: 180)
                                                     .overlay(Text("Gagal memuat gambar"))
                                                     .cornerRadius(12)
+
                                             @unknown default:
                                                 EmptyView()
                                             }
@@ -150,53 +184,53 @@ struct DetailNews: View {
                                         .frame(maxWidth: .infinity, alignment: .center)
                                     }
 
-                                    if let judul = content?.judul, !judul.isEmpty {
+                                    // Judul
+                                    if let judul = evidence.judul {
                                         Text(judul)
                                             .font(.subheadline)
                                             .bold()
                                     }
 
+                                    // Sumber & tanggal
                                     HStack(spacing: 10) {
-                                        if let sumber = content?.sumber {
+                                        if let sumber = evidence.sumber {
                                             Text(sumber)
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
-                                        if let tanggal = content?.tanggal {
+                                        if let tanggal = evidence.tanggal {
                                             Text(tanggal)
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
                                     }
 
-                                    if expandEvidence {
-                                        Text(fullContent)
-                                            .font(.body)
-                                            .foregroundColor(.primary)
-                                    } else {
-                                        Text(preview + (fullContent.count > 200 ? "…" : ""))
-                                            .font(.body)
-                                            .foregroundColor(.secondary)
-                                    }
+                                    // Content
+                                    Text(expandEvidence
+                                         ? fullContent
+                                         : preview + (fullContent.count > 200 ? "…" : "")
+                                    )
+                                    .font(.body)
+                                    .foregroundColor(.primary)
 
-                                    Button(action: {
+                                    Button {
                                         withAnimation {
                                             expandEvidence.toggle()
                                         }
-                                    }) {
+                                    } label: {
                                         Text(expandEvidence ? "Lihat lebih sedikit ▲" : "Lihat selengkapnya ▼")
                                             .font(.callout)
                                             .foregroundColor(.blue)
                                     }
                                     .padding(.vertical, 6)
                                 }
-                                
                             }
                             .padding(.vertical, 10)
                         }
 
+
                         //bukti pendukung
-                        if let links = news.evidence_link {
+                        if let links = news.evidence_links {
                             SectionCard(title: "Sumber Pendukung") {
                                 VStack(alignment: .leading, spacing: 12) {
                                     ForEach(links, id: \.self) { link in
