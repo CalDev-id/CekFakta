@@ -30,13 +30,21 @@ struct CekFaktaApp: App {
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
     }
+    
+    // 🔥 GLOBAL STATE
     @StateObject private var auth = AuthManager()
+    @StateObject private var profile = ProfileManager()
+    
     var body: some Scene {
         WindowGroup {
             NavigationStack {
                 RootView()
             }
             .environmentObject(auth)
+            .environmentObject(profile)
+            .task {
+                profile.fetchMyNewsIfNeeded(force: false)
+            }
         }
         .modelContainer(sharedModelContainer)
     }

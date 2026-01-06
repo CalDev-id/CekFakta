@@ -58,7 +58,6 @@ struct PredictWithNews: View {
                 
                 // BUTTON
                 Button(action: {
-                    print("Predict News Triggered")
                 }) {
                     HStack {
                         Spacer()

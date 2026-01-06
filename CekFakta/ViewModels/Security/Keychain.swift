@@ -9,7 +9,6 @@ import Foundation
 import Security
 
 enum Keychain {
-
     static func save(_ key: String, _ value: String) {
         let data = value.data(using: .utf8)!
 

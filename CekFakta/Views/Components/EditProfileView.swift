@@ -10,6 +10,7 @@ import PhotosUI
 
 struct EditProfileView: View {
     @EnvironmentObject var auth: AuthManager
+    @EnvironmentObject var user: ProfileManager
     @Environment(\.dismiss) private var dismiss
 
     // Profile fields
@@ -158,20 +159,20 @@ struct EditProfileView: View {
             do {
                 var avatarURL: String?
 
-                // 1. Upload avatar if needed
                 if let image = selectedImage {
                     avatarURL = try await auth.uploadAvatar(image)
                 }
 
-                // 2. Update profile
-                try await auth.updateProfile(
+                try await user.updateProfile(
                     name: name != auth.userName ? name : nil,
                     avatarURL: avatarURL,
                     email: email != auth.userEmail ? email : nil,
                     password: password.isEmpty ? nil : password
                 )
 
+                await auth.fetchCurrentUser()
                 dismiss()
+
             } catch {
                 self.error = "Failed to update profile"
             }
@@ -179,4 +180,6 @@ struct EditProfileView: View {
             isLoading = false
         }
     }
+
+
 }

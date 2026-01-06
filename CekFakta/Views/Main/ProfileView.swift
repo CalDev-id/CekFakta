@@ -8,83 +8,90 @@
 import SwiftUI
 
 struct ProfileView: View {
-    @EnvironmentObject var auth: AuthManager
-    @StateObject private var vm = ProfileNewsViewModel()
+    @EnvironmentObject private var auth: AuthManager
+    @EnvironmentObject private var vm: ProfileManager
     @State private var showEditProfile = false
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-
-            // =======================
-            // MAIN CONTENT
-            // =======================
-            VStack(spacing: 24) {
-
-                // Avatar
-                if let avatar = auth.avatarURL,
-                   let url = URL(string: avatar) {
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        ProgressView()
-                    }
-                    .frame(width: 100, height: 100)
-                    .clipShape(Circle())
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
+            ScrollView(.vertical, showsIndicators: false){
+                VStack(spacing: 24) {
+                    if let avatar = auth.avatarURL,
+                       let url = URL(string: avatar) {
+                        AsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            ProgressView()
+                        }
                         .frame(width: 100, height: 100)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 100, height: 100)
-                }
-
-                // User info
-                VStack(spacing: 8) {
-                    Text(auth.userName ?? "No Name")
-                        .font(.title3)
-                        .bold()
-
-                    Text(auth.userEmail ?? "-")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("My Posts")
-                        .font(.headline)
-
-                    if vm.isLoading {
-                        ProgressView()
-                    } else if vm.news.isEmpty {
-                        Text("No posts yet")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
+                        .clipShape(Circle())
                     } else {
-                        ForEach(vm.news) { item in
-                            NewsRow(news: item) // 👉 pakai card yang sudah ada
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .frame(width: 100, height: 100)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 100, height: 100)
+                    }
+                    VStack(spacing: 8) {
+                        Text(auth.userName ?? "No Name")
+                            .font(.title3)
+                            .bold()
+
+                        Text(auth.userEmail ?? "-")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Divider()
+                        .padding(.horizontal)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("My Posts")
+                            .font(.headline)
+                            .multilineTextAlignment(.leading)
+
+                        // ✅ ERROR MESSAGE DI SINI
+                        if let err = vm.errorMessage {
+                            Text(err)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        }
+
+                        if vm.isLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                        } else if vm.news.isEmpty {
+                            Text("No posts yet")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        } else {
+                            ForEach(vm.news) { item in
+                                if let id = item.id {
+                                    NavigationLink(destination: DetailNews(newsId: id)) {
+                                        NewsRow(news: item)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
                         }
                     }
-                }
-                Divider()
+                    Divider()
+                    Button(role: .destructive) {
+                        auth.logout()
+                        vm.resetCache()
+                    } label: {
+                        Text("Logout")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
 
-                // Logout
-                Button(role: .destructive) {
-                    auth.logout()
-                } label: {
-                    Text("Logout")
-                        .frame(maxWidth: .infinity)
+                    Spacer()
                 }
-                .buttonStyle(.borderedProminent)
-
-                Spacer()
+                .padding()
             }
-            .padding()
-            .navigationTitle("Profile")
-
-            // =======================
-            // EDIT BUTTON (MANUAL)
-            // =======================
+            .refreshable {
+                vm.refreshMyNews(force: true)
+            }
             Button {
                 showEditProfile = true
             } label: {
@@ -95,12 +102,12 @@ struct ProfileView: View {
             .padding(.trailing, 16)
             .padding(.top, 8)
         }
-        .onAppear {
-            Task { await vm.fetchMyNews() }
-        }
         .sheet(isPresented: $showEditProfile) {
             EditProfileView()
                 .environmentObject(auth)
+                .environmentObject(vm)
         }
+
+
     }
 }
