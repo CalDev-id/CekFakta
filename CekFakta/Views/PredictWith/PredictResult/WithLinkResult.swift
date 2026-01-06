@@ -163,6 +163,9 @@ struct WithLinkResult: View {
                     Button {
                         Task {
                             await shareVM.shareNews(prediction)
+                            if shareVM.isSuccess {
+                                dismiss()
+                            }
                         }
                     } label: {
                         HStack {
@@ -170,7 +173,7 @@ struct WithLinkResult: View {
                                 ProgressView()
                             } else {
                                 Image(systemName: "square.and.arrow.up")
-                                Text("Share ke Database")
+                                Text("Share")
                             }
                         }
                         .frame(maxWidth: .infinity)
@@ -179,6 +182,7 @@ struct WithLinkResult: View {
                         .foregroundColor(.white)
                         .cornerRadius(12)
                     }
+                    .disabled(shareVM.isLoading)
                     .padding(.top, 20)
 
 
