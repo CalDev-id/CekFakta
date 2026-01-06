@@ -4,26 +4,41 @@
 //
 //  Created by Heical Chandra on 18/12/25.
 //
-
 import Foundation
 import SwiftUI
 
 @MainActor
-class AuthManager: ObservableObject {
+final class AuthManager: ObservableObject {
 
-    @Published var isAuthenticated: Bool = false
+    // MARK: - State
+    @Published var isAuthenticated = false
+    @Published var isLoading = true
     @Published var userEmail: String?
-    @Published var isLoading: Bool = true
     @Published var userName: String?
     @Published var avatarURL: String?
 
     private let baseURL = "http://192.168.50.110:8000"
 
+    // MARK: - Init
     init() {
         loadSession()
     }
 
-    // - LOGIN
+    // MARK: - Session
+    func loadSession() {
+        Task {
+            defer { isLoading = false }
+
+            guard AuthTokenProvider.accessToken() != nil else {
+                isAuthenticated = false
+                return
+            }
+
+            await fetchCurrentUser()
+        }
+    }
+
+    // MARK: - Login
     func login(email: String, password: String) async throws {
         let url = URL(string: "\(baseURL)/auth/login")!
         var request = URLRequest(url: url)
@@ -36,22 +51,18 @@ class AuthManager: ObservableObject {
         ])
 
         let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
 
         let result = try JSONDecoder().decode(AuthResponse.self, from: data)
-
         Keychain.save("access_token", result.access_token)
         Keychain.save("refresh_token", result.refresh_token)
 
-        userEmail = result.user.email
-        isAuthenticated = true
         await fetchCurrentUser()
     }
 
-    // - SIGNUP
+    // MARK: - Signup ✅ (INI YANG KEMARIN KEHAPUS)
     func signup(email: String, password: String, name: String) async throws {
         let url = URL(string: "\(baseURL)/auth/signup")!
         var request = URLRequest(url: url)
@@ -64,57 +75,34 @@ class AuthManager: ObservableObject {
             "name": name
         ])
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
-
-        _ = try JSONDecoder().decode(SignUpResponse.self, from: data)
     }
 
-
-    // - LOGOUT
+    // MARK: - Logout
     func logout() {
         Keychain.delete("access_token")
         Keychain.delete("refresh_token")
+
         isAuthenticated = false
         userEmail = nil
+        userName = nil
+        avatarURL = nil
     }
 
-    // - LOAD SESSION
-    func loadSession() {
-        Task {
-            defer { isLoading = false }
-
-            guard Keychain.load("access_token") != nil else {
-                isAuthenticated = false
-                return
-            }
-
-            await fetchCurrentUser()
-        }
-    }
-
-
-    // - AUTH HEADER
-    func authHeader() -> String? {
-        guard let token = Keychain.load("access_token") else { return nil }
-        return "Bearer \(token)"
-    }
-    
+    // MARK: - Fetch User
     func fetchCurrentUser() async {
-        guard let token = Keychain.load("access_token") else {
+        guard let token = AuthTokenProvider.accessToken() else {
             logout()
             return
         }
 
-        let success = await fetchUser(with: token)
-        if !success {
-            let refreshed = await refreshAccessToken()
-            if refreshed {
-                _ = await fetchUser(with: Keychain.load("access_token")!)
-            }
+        if !(await fetchUser(with: token)),
+           await refreshAccessToken(),
+           let newToken = AuthTokenProvider.accessToken() {
+            _ = await fetchUser(with: newToken)
         }
     }
 
@@ -125,24 +113,21 @@ class AuthManager: ObservableObject {
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                return false
-            }
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return false }
 
             let user = try JSONDecoder().decode(User.self, from: data)
-
-            self.userEmail = user.email
-            self.userName = user.name
-            self.avatarURL = user.avatar_url
-            self.isAuthenticated = true
+            userEmail = user.email
+            userName = user.name
+            avatarURL = user.avatar_url
+            isAuthenticated = true
             return true
         } catch {
             return false
         }
     }
 
-    func refreshAccessToken() async -> Bool {
+    // MARK: - Refresh Token
+    private func refreshAccessToken() async -> Bool {
         guard let refreshToken = Keychain.load("refresh_token") else { return false }
 
         let url = URL(string: "\(baseURL)/auth/refresh")!
@@ -156,7 +141,7 @@ class AuthManager: ObservableObject {
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else {
                 logout()
                 return false
             }
@@ -164,47 +149,10 @@ class AuthManager: ObservableObject {
             let result = try JSONDecoder().decode(RefreshResponse.self, from: data)
             Keychain.save("access_token", result.access_token)
             return true
-
         } catch {
             logout()
             return false
         }
-    }
-    
-    // - UPDATE PROFILE
-    func updateProfile(
-        name: String? = nil,
-        avatarURL: String? = nil,
-        email: String? = nil,
-        password: String? = nil
-    ) async throws {
-
-        guard let token = Keychain.load("access_token") else {
-            throw URLError(.userAuthenticationRequired)
-        }
-
-        let url = URL(string: "\(baseURL)/profile")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "PATCH"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-
-        let body = UpdateProfileRequest(
-            name: name,
-            avatar_url: avatarURL,
-            email: email,
-            password: password
-        )
-
-        request.httpBody = try JSONEncoder().encode(body)
-
-        let (_, response) = try await URLSession.shared.data(for: request)
-
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-
-        await fetchCurrentUser()
     }
     
     func uploadAvatar(_ image: UIImage) async throws -> String {
@@ -221,7 +169,10 @@ class AuthManager: ObservableObject {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
         let boundary = UUID().uuidString
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.setValue(
+            "multipart/form-data; boundary=\(boundary)",
+            forHTTPHeaderField: "Content-Type"
+        )
 
         request.httpBody = MultipartFormData.build(
             boundary: boundary,
@@ -241,6 +192,4 @@ class AuthManager: ObservableObject {
         return result.avatar_url
     }
 
-
 }
-

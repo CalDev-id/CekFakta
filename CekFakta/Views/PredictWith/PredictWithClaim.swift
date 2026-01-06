@@ -37,7 +37,6 @@ struct PredictWithClaim: View {
                 
                 // BUTTON
                 Button(action: {
-                    print("Predict Claim Triggered")
                 }) {
                     HStack {
                         Spacer()
