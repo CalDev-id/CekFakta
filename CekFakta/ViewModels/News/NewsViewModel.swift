@@ -13,26 +13,40 @@ class NewsViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    let baseURL = "http://192.168.50.110:8000"
+    private let baseURL = "http://192.168.50.110:8000"
+    private var hasLoadedOnce = false
 
-    func fetchNews() async {
+    func loadIfNeeded(force: Bool = false) async {
+        if hasLoadedOnce && !force { return }
+        await fetchNews(showLoading: newsList.isEmpty) // loading hanya kalau pertama kali
+        hasLoadedOnce = true
+    }
+
+    func fetchNews(showLoading: Bool = true) async {
         guard let url = URL(string: "\(baseURL)/news") else {
             errorMessage = "Invalid URL"
             return
         }
 
-        isLoading = true
-        defer { isLoading = false }
+        if showLoading { isLoading = true }
+        defer { if showLoading { isLoading = false } }
 
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let decoded = try JSONDecoder().decode([News].self, from: data)
             newsList = decoded
+            errorMessage = nil
+        } catch is CancellationError {
+            // dibatalkan? abaikan saja
+            return
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            return
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 }
+
 
 @MainActor
 class DetailNewsViewModel: ObservableObject {

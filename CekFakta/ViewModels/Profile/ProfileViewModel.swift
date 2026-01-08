@@ -20,7 +20,7 @@ final class ProfileManager: ObservableObject {
     private let baseURL = "http://192.168.50.110:8000"
     private var hasLoadedMyNews = false
 
-    private var currentFetchTask: Task<Void, Never>?   // ✅
+    private var currentFetchTask: Task<Void, Never>?
 
     func fetchMyNewsIfNeeded(force: Bool = false) {
         // untuk load sekali / sesuai kebutuhan
@@ -151,5 +151,56 @@ final class ProfileManager: ObservableObject {
             throw URLError(.badServerResponse)
         }
         
+    }
+    
+    func deleteNews(_ item: News) {
+        guard let newsId = item.id else { return }
+
+        // Optimistic UI
+        let snapshot = news
+        news.removeAll { $0.id == newsId }
+        errorMessage = nil
+
+        Task {
+            do {
+                try await _deleteMyNews(newsId: newsId)
+            } catch {
+                // rollback kalau gagal
+                self.news = snapshot
+                self.errorMessage = "Delete failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+
+    private func _deleteMyNews(newsId: String) async throws {
+        guard let token = Keychain.load("access_token") else {
+            throw URLError(.userAuthenticationRequired)
+        }
+
+        let url = URL(string: "\(baseURL)/news/my/\(newsId)")!
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 30
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        // Backend kamu return 200 kalau sukses ({"message":"News deleted"})
+        guard (200...299).contains(http.statusCode) else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            // Biar kelihatan detail error dari FastAPI
+            throw NSError(
+                domain: "APIError",
+                code: http.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(body)"]
+            )
+        }
     }
 }

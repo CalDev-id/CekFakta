@@ -1,43 +1,37 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var isSelected: Int = 1
+    @EnvironmentObject private var router: Router
     @EnvironmentObject var auth: AuthManager
+    @EnvironmentObject var profile: ProfileManager
 
     var body: some View {
-        TabView(selection: $isSelected) {
+        TabView(selection: Binding(
+            get: { router.selectedTab.rawValue },
+            set: { router.selectedTab = Router.Tab(rawValue: $0) ?? .home }
+        )) {
             HomeScreen()
-                .tag(1)
-                .tabItem {
-                    Image(systemName: "house")
-                    Text("Home")
-                }
+                .tag(Router.Tab.home.rawValue)
+                .tabItem { Image(systemName: "house"); Text("Home") }
 
             PredictView()
-                .tag(2)
-                .tabItem {
-                    Image(systemName: "magnifyingglass")
-                    Text("Check")
-                }
+                .tag(Router.Tab.check.rawValue)
+                .tabItem { Image(systemName: "magnifyingglass"); Text("Check") }
 
             ChatView()
-                .tag(3)
-                .tabItem {
-                    Image(systemName: "message")
-                    Text("Chat")
-                }
+                .tag(Router.Tab.chat.rawValue)
+                .tabItem { Image(systemName: "message"); Text("Chat") }
 
             ProfileView()
-                .tag(4)
-                .tabItem {
-                    Image(systemName: "person.fill")
-                    Text("Profile")
-                }
+                .tag(Router.Tab.profile.rawValue)
+                .tabItem { Image(systemName: "person.fill"); Text("Profile") }
         }
         .background(.black)
         .accentColor(.red)
+        .task { profile.fetchMyNewsIfNeeded(force: false) }
     }
 }
+
 
 #Preview {
     ContentView()

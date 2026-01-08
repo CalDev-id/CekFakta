@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ChatView: View {
+    @EnvironmentObject var auth: AuthManager
     @StateObject private var viewModel = ChatViewModel()
     @State private var userInput: String = ""
 
@@ -12,6 +13,19 @@ struct ChatView: View {
         .safeAreaInset(edge: .bottom) {
             inputBar
                 .background(Color.white)
+        }
+        .onAppear {
+            if let email = auth.userEmail {
+                viewModel.setUserKey(email)
+            }
+        }
+        .onChange(of: auth.userEmail) { newEmail in
+            if let newEmail {
+                viewModel.setUserKey(newEmail)
+            } else {
+                // kalau logout dan email jadi nil, kosongkan UI (opsional)
+                viewModel.chatHistory = []
+            }
         }
     }
     private var headerView: some View {

@@ -4,10 +4,15 @@
 //
 //  Created by Heical Chandra on 24/11/25.
 //
-
 import Foundation
 
-class PredictionViewModel: ObservableObject {
+@MainActor
+final class PredictionStore: ObservableObject {
+    @Published var latestPrediction: News?
+}
+
+@MainActor
+final class PredictionViewModel: ObservableObject {
     @Published var urlInput: String = ""
     @Published var isLoading: Bool = false
     @Published var result: News?
@@ -16,52 +21,38 @@ class PredictionViewModel: ObservableObject {
     private let endpoint = "http://192.168.50.110:8000/predict_test/"
 
     func predict() {
+        Task { await predictAsync() }
+    }
+
+    private func predictAsync() async {
         guard let url = URL(string: endpoint) else {
-            self.errorMessage = "Invalid API URL"
+            errorMessage = "Invalid API URL"
             return
         }
 
-        self.isLoading = true
-        self.errorMessage = ""
-        self.result = nil
+        isLoading = true
+        errorMessage = ""
+        result = nil
+        defer { isLoading = false }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Body JSON → {"url": "https://..."}
         let body = ["url": urlInput]
 
         do {
             request.httpBody = try JSONEncoder().encode(body)
-        } catch {
-            self.errorMessage = "Failed to encode request body"
-            self.isLoading = false
-            return
-        }
+            let (data, response) = try await URLSession.shared.data(for: request)
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                self.isLoading = false
-
-                if let error = error {
-                    self.errorMessage = error.localizedDescription
-                    return
-                }
-
-                guard let data = data else {
-                    self.errorMessage = "No data received"
-                    return
-                }
-
-                do {
-                    let decoded = try JSONDecoder().decode(News.self, from: data)
-                    self.result = decoded
-                } catch {
-                    self.errorMessage = "Failed to decode response: \(error.localizedDescription)"
-                }
+            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+                errorMessage = "Server error"
+                return
             }
-        }.resume()
+
+            result = try JSONDecoder().decode(News.self, from: data)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }
-

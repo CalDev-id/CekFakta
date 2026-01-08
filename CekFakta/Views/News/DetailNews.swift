@@ -3,7 +3,7 @@ import SwiftUI
 struct DetailNews: View {
     let newsId: String
     @StateObject private var vm = DetailNewsViewModel()
-    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject private var router: Router
     @State private var expandEvidence: Bool = false
     
     var body: some View {
@@ -19,7 +19,7 @@ struct DetailNews: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Button(action: {
-                            dismiss()
+                            router.navigateBack()
                         }) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 18, weight: .medium))

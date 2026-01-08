@@ -9,7 +9,7 @@ import SwiftUI
 
 struct TopNewsCard: View {
     let news: News
-
+    
     var body: some View {
         ZStack {
             AsyncImageView(urlString: news.evidence_scraped?.first?.featured_image)

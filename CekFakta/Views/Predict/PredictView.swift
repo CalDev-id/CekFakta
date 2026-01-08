@@ -3,16 +3,18 @@ import SwiftUI
 struct PredictOption: Identifiable {
     let id = UUID()
     let title: String
-    let destination: AnyView
+    let destination: Router.Destination
 }
 
 struct PredictView: View {
-    let options: [PredictOption] = [
-        PredictOption(title: "News",  destination: AnyView(PredictWithNews())),
-        PredictOption(title: "Claim", destination: AnyView(PredictWithClaim())),
-        PredictOption(title: "Link",  destination: AnyView(PredictWithLink()))
+    @EnvironmentObject private var router: Router
+
+    private let options: [PredictOption] = [
+        PredictOption(title: "News",  destination: .predictWithNews),
+        PredictOption(title: "Claim", destination: .predictWithClaim),
+        PredictOption(title: "Link",  destination: .predictWithLink)
     ]
-    
+
     var body: some View {
         VStack(spacing: 20) {
             Text("Choose Prediction Method")
@@ -22,7 +24,9 @@ struct PredictView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             ForEach(options) { option in
-                NavigationLink(destination: option.destination) {
+                Button {
+                    router.navigate(to: option.destination)
+                } label: {
                     PredictCard(predict: option.title)
                 }
                 .buttonStyle(.plain)
